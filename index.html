@@ -657,7 +657,7 @@ class Pad {
     let mean = 0; for (let i=0;i<24;i++) mean += dist(u.pts[i], ref.pts[i]); mean/=24;
     const near = (p, set)=>Math.min(...set.map(q=>dist(p,q)));
     const chamfer = (u.pts.reduce((s,p)=>s+near(p,ref.pts),0) + ref.pts.reduce((s,p)=>s+near(p,u.pts),0)) / 48;
-    const m = [1.5, 1.25, 1.05][S.set.level ?? 0];
+    const m = [1.25, 1.1, 0.95][S.set.level ?? 0];
     const short = ref.L < 14;
     const d0 = dist(u.pts[0],ref.pts[0]), d1 = dist(u.pts[23],ref.pts[23]);
     const ok = short
