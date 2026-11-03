@@ -54,7 +54,12 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .disc svg{width:66%;height:66%}
 .big-choice strong{font-size:20px;font-weight:400}
 .big-choice small{color:var(--muted);font-size:14px}
-.home-gear{position:absolute;top:14px;inset-inline-start:max(16px,env(safe-area-inset-left,0px))}
+.home-top{position:absolute;top:14px;inset-inline:max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;gap:6px;align-items:center}
+.home-top .sp{flex:1}
+.icon-btn.inst svg{stroke:var(--blue-soft)}
+.icon-btn.inst{background:rgba(90,169,230,.12);border:1px solid rgba(90,169,230,.35)}
+.ios-steps{color:var(--muted);font-size:15px;line-height:1.9;margin:0}
+.ios-steps b{color:var(--fg);font-weight:400}
 
 /* lesson list */
 .list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-bottom:170px;margin-inline:-6px;padding-inline:6px}
@@ -199,6 +204,8 @@ const ICON = {
   back:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
   gear:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>',
   grid:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>',
+  dl:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  share:'<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>',
   play:'<svg viewBox="0 0 24 24"><path d="M6 3.5l15 8.5-15 8.5z"/></svg>'
 };
 
@@ -243,6 +250,33 @@ const isLearned = (s,i) => !!S.learned[lessonId(s,i)];
 const isOpen = (s,i) => S.set.unlock || i===0 || isLearned(s,i-1) || isLearned(s,i);
 const learnedChars = (s) => ROWS[s].flatMap((row,i)=> isLearned(s,i) ? [...row] : []);
 
+/* ---------- PWA: install & share ---------- */
+const isStandalone = ()=>matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+let deferredPrompt = null;
+function paintInstall(){ const b=document.getElementById("installBtn"); if (b) b.hidden = isStandalone() || !(deferredPrompt || isIOS); }
+addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredPrompt=e; paintInstall(); });
+addEventListener("appinstalled", ()=>{ deferredPrompt=null; paintInstall(); toast("קאנה דוג'ו הותקנה"); });
+async function doInstall(){
+  if (deferredPrompt) { deferredPrompt.prompt(); try { await deferredPrompt.userChoice; } catch(e){} deferredPrompt=null; paintInstall(); }
+  else if (isIOS) {
+    const sc = h(`<div class="scrim"><div class="sheet" role="dialog" aria-label="התקנה באייפון">
+      <h2>התקנה באייפון</h2>
+      <p class="ios-steps">1. לחצו על כפתור השיתוף של ספארי<br>2. בחרו <b>"הוסף למסך הבית"</b><br>3. לחצו <b>"הוסף"</b> וקאנה דוג'ו תופיע כאפליקציה</p>
+      <button class="btn blue" style="margin-top:12px">הבנתי</button>
+    </div></div>`);
+    sc.querySelector(".btn").onclick = ()=>sc.remove();
+    sc.onclick = e=>{ if (e.target===sc) sc.remove(); };
+    $app.appendChild(sc);
+  }
+}
+async function doShare(){
+  const url = location.href.split("#")[0];
+  const data = {title:"קאנה דוג'ו", text:"קאנה דוג'ו: לומדים לקרוא ולכתוב הירגנה, קטקנה ושלטים ביפן", url};
+  if (navigator.share) { try { await navigator.share(data); } catch(e){} return; }
+  try { await navigator.clipboard.writeText(url); toast("הקישור הועתק"); } catch(e){ toast(url); }
+}
+
 /* ---------- SRS ---------- */
 function grade(c, ok) {
   const r = S.srs[c] || {b:0, d:0};
@@ -258,7 +292,12 @@ function show(el){ if (current) current.remove(); speechSynthesis?.cancel?.(); c
 function Home() {
   const count = s => ROWS[s].filter((_,i)=>isLearned(s,i)).length;
   const el = h(`<section class="screen home">
-    <button class="icon-btn home-gear" aria-label="הגדרות">${ICON.gear}</button>
+    <div class="home-top">
+      <button class="icon-btn home-gear" aria-label="הגדרות">${ICON.gear}</button>
+      <span class="sp"></span>
+      <button class="icon-btn inst" id="installBtn" aria-label="התקנת האפליקציה" title="התקנה" hidden>${ICON.dl}</button>
+      <button class="icon-btn" id="shareBtn" aria-label="שיתוף" title="שיתוף">${ICON.share}</button>
+    </div>
     <div class="brand"><b>קאנה דוג'ו</b><span>קריאה וכתיבה יפנית</span></div>
     <button class="big-choice" data-s="h"><div class="disc h">${glyphSVG("あ",{cls:"",width:7})}</div><strong>הירגנה</strong><small>${count("h")} / 15 שיעורים</small></button>
     <button class="big-choice" data-s="k"><div class="disc k">${glyphSVG("ア",{cls:"",width:7})}</div><strong>קטקנה</strong><small>${count("k")} / 15 שיעורים</small></button>
@@ -266,7 +305,9 @@ function Home() {
   </section>`);
   el.querySelectorAll(".big-choice").forEach(b=>b.onclick=()=>show(List(b.dataset.s)));
   el.querySelector(".home-gear").onclick = ()=>Settings(()=>show(Home()));
-  show(el);
+  el.querySelector("#installBtn").onclick = doInstall;
+  el.querySelector("#shareBtn").onclick = doShare;
+  show(el); paintInstall();
   return el;
 }
 
