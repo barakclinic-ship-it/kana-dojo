@@ -578,7 +578,7 @@ class Pad {
     this.paint();
     const sv = this.svg;
     sv.addEventListener("pointerdown", e=>{ if (this.k>=this.d.length) return; try { sv.setPointerCapture(e.pointerId); } catch(_){} this.pts=[this.xy(e)]; this.drawLive(); e.preventDefault(); });
-    sv.addEventListener("pointermove", e=>{ if (!this.pts) return; (e.getCoalescedEvents?e.getCoalescedEvents():[e]).forEach(ev=>this.pts.push(this.xy(ev))); this.drawLive(); });
+    sv.addEventListener("pointermove", e=>{ if (!this.pts) return; ((e.getCoalescedEvents&&e.getCoalescedEvents().length)?e.getCoalescedEvents():[e]).forEach(ev=>this.pts.push(this.xy(ev))); this.drawLive(); });
     const end = ()=>{ if (!this.pts) return; const p=this.pts; this.pts=null; this.check(p); };
     sv.addEventListener("pointerup", end); sv.addEventListener("pointercancel", end);
   }
