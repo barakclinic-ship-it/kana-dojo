@@ -74,6 +74,10 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .row .meta em{font-style:normal;font-size:14px;color:var(--muted)}
 .row.ready .meta em{color:var(--green)}
 .row.locked{opacity:.75}
+.row.mix .badge{background:var(--surface-2);border:2px dashed var(--blue-soft);box-shadow:none;width:76px;height:76px}
+.row.mix.learned .badge{border-style:solid;border-color:var(--green)}
+.row.mix .badge svg{width:34px;height:34px;fill:none;stroke:var(--fg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.row.mix .meta .chars{font-size:15px;letter-spacing:0}
 .dock{position:absolute;inset:auto 0 0 0;padding:28px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 70%,transparent);display:grid;gap:12px}
 
 .btn{height:58px;border-radius:18px;font-size:20px;color:#fff;width:100%;transition:transform .12s,filter .12s}
@@ -211,6 +215,7 @@ const ICON = {
   grid:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>',
   dl:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   share:'<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>',
+  mix:'<svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M3 17h4c1.6 0 2.8-1.6 3.9-3.6M13.1 9.6C14.2 8 15.4 7 17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>',
   play:'<svg viewBox="0 0 24 24"><path d="M6 3.5l15 8.5-15 8.5z"/></svg>'
 };
 
@@ -252,7 +257,11 @@ function toast(msg) {
 
 const lessonId = (s,i) => s+i;
 const isLearned = (s,i) => !!S.learned[lessonId(s,i)];
-const isOpen = (s,i) => S.set.unlock || i===0 || isLearned(s,i-1) || isLearned(s,i);
+const hasMix = i => (i+1)%3===0;
+const mixId = (s,i) => s+"m"+i;
+const isMixDone = (s,i) => !!S.learned[mixId(s,i)];
+const isOpen = (s,i) => S.set.unlock || i===0 || isLearned(s,i) || (hasMix(i-1) ? isMixDone(s,i-1) : isLearned(s,i-1));
+const isMixOpen = (s,i) => S.set.unlock || isLearned(s,i) || isMixDone(s,i);
 const learnedChars = (s) => ROWS[s].flatMap((row,i)=> isLearned(s,i) ? [...row] : []);
 
 /* ---------- PWA: install & share ---------- */
@@ -338,8 +347,18 @@ function List(s) {
       <span class="badge kana">${s==="s" ? ["駅","男","禁"][i] : row[0]}</span>
       <span class="meta"><b>שיעור ${i+1}${s==="s" ? " · "+LESSON_NAME.s[i] : ""}</b><span class="chars kana">${s==="s" ? row.slice(0,4).join(" · ")+" …" : row.join(" ")}</span><em>${st}</em></span>
     </button>`);
-    r.onclick = () => open ? startLesson(s,i) : toast("סיימו את השיעור הקודם כדי לפתוח");
+    r.onclick = () => open ? startLesson(s,i) : toast(hasMix(i-1) ? "סיימו את החזרה המעורבת כדי לפתוח" : "סיימו את השיעור הקודם כדי לפתוח");
     list.appendChild(r);
+    if (hasMix(i)) {
+      const done = isMixDone(s,i), mo = isMixOpen(s,i);
+      const n = ROWS[s].slice(0,i+1).flat().length;
+      const m = h(`<button class="row mix ${done?"learned":mo?"ready":"locked"}">
+        <span class="badge">${ICON.mix}</span>
+        <span class="meta"><b>חזרה מעורבת</b><span class="chars">כל מה שלמדנו עד שיעור ${i+1} · ${n} ${s==="s"?"שלטים":"תווים"}</span><em>${done?"הושלמה":mo?"מוכנה!":"נעולה"}</em></span>
+      </button>`);
+      m.onclick = () => mo ? startMix(s,i) : toast(`סיימו את שיעור ${i+1} כדי לפתוח`);
+      list.appendChild(m);
+    }
   });
   el.querySelector('[data-a="home"]').onclick = Home;
   el.querySelector('[data-a="chart"]').onclick = ()=>show(Chart(s));
@@ -440,6 +459,18 @@ function startLesson(s,i) {
   chars.forEach(c=>{ practice.push({t:"read",c},{t:"rev",c}); if (wr) practice.push({t:"recall",c}); });
   q.push(...shuffle(practice));
   SES = {s, lesson:i, chars, q, pos:0, total:q.length, graded:0, right:0};
+  next();
+}
+function startMix(s, i) {
+  const pool = ROWS[s].slice(0, i+1).flat();
+  const wr = S.set.write && s!=="s";
+  // weakest first, then a random spread so every round covers different ground
+  const ranked = shuffle(pool.slice()).sort((a,b)=>((S.srs[a]?.b??0)-(S.srs[b]?.b??0)));
+  const chars = shuffle(ranked.slice(0, Math.min(16, pool.length)));
+  const types = ["read","rev"].concat(wr?["recall"]:[]);
+  const q = [];
+  chars.forEach(c=>{ shuffle(types.slice()).slice(0,2).forEach(t=>q.push({t,c})); });
+  SES = {s, lesson:null, mix:i, chars, q:shuffle(q), pos:0, total:q.length, graded:0, right:0, review:true};
   next();
 }
 function startReview(s, smart) {
@@ -626,7 +657,7 @@ class Pad {
     let mean = 0; for (let i=0;i<24;i++) mean += dist(u.pts[i], ref.pts[i]); mean/=24;
     const near = (p, set)=>Math.min(...set.map(q=>dist(p,q)));
     const chamfer = (u.pts.reduce((s,p)=>s+near(p,ref.pts),0) + ref.pts.reduce((s,p)=>s+near(p,u.pts),0)) / 48;
-    const m = [1.7, 1.35, 1.05][S.set.level ?? 0];
+    const m = [1.5, 1.25, 1.05][S.set.level ?? 0];
     const short = ref.L < 14;
     const d0 = dist(u.pts[0],ref.pts[0]), d1 = dist(u.pts[23],ref.pts[23]);
     const ok = short
@@ -652,21 +683,24 @@ class Pad {
 function Done() {
   const pct = SES.graded ? Math.round(SES.right/SES.graded*100) : 100;
   if (SES.lesson !== null) { S.learned[lessonId(SES.s, SES.lesson)] = true; save(); }
-  const hasNext = SES.lesson !== null && SES.lesson < ROWS[SES.s].length-1;
+  if (SES.mix != null) { S.learned[mixId(SES.s, SES.mix)] = true; save(); }
+  const from = SES.mix != null ? SES.mix : SES.lesson;
+  const goMix = SES.lesson !== null && hasMix(SES.lesson);
+  const hasNext = from !== null && (goMix || from < ROWS[SES.s].length-1);
   const el = h(`<section class="screen done">
     <div class="stage">
-      <h2>${SES.review ? "החזרה הושלמה" : `שיעור ${SES.lesson+1} הושלם`}</h2>
+      <h2>${SES.mix != null ? "החזרה המעורבת הושלמה" : SES.review ? "החזרה הושלמה" : `שיעור ${SES.lesson+1} הושלם`}</h2>
       <div class="score">${pct}%</div>
       <div class="small-roma" style="font-size:16px">דיוק בניסיון הראשון</div>
       <div class="chips">${SES.chars.slice(0,15).map(c=>`<span class="chip kana ${SCRIPT_OF[c]==="s"?"w":""}">${c}</span>`).join("")}</div>
     </div>
     <div class="actions">
-      ${hasNext ? `<button class="btn blue" data-a="next">לשיעור הבא</button>` : ""}
+      ${hasNext ? `<button class="btn blue" data-a="next">${goMix ? "לחזרה המעורבת" : "לשיעור הבא"}</button>` : ""}
       <button class="btn ghost" data-a="list">חזרה לרשימה</button>
     </div>
   </section>`);
   el.querySelector('[data-a="list"]').onclick = ()=>List(SES.s);
-  el.querySelector('[data-a="next"]')?.addEventListener("click", ()=>startLesson(SES.s, SES.lesson+1));
+  el.querySelector('[data-a="next"]')?.addEventListener("click", ()=> goMix ? startMix(SES.s, SES.lesson) : startLesson(SES.s, from+1));
   show(el);
 }
 
