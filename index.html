@@ -74,6 +74,17 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .row .meta em{font-style:normal;font-size:14px;color:var(--muted)}
 .row.ready .meta em{color:var(--green)}
 .row.locked{opacity:.75}
+.row.sim .badge{background:var(--surface-2);box-shadow:none;border:2px solid var(--orange);font-size:28px;letter-spacing:-.04em}
+.row.sim.learned .badge{border-color:var(--green)}
+.row.sim .meta .chars{font-size:15px;letter-spacing:0}
+.rule{display:grid;gap:14px;width:100%;max-width:360px}
+.rule .ln{display:flex;align-items:center;justify-content:center;gap:10px;direction:ltr;font-family:var(--f-kana);font-size:44px}
+.rule .ln small{font-family:var(--f-ui);font-size:14px;color:var(--muted)}
+.rule .ln .ar{color:var(--guide);font-size:22px}
+.rule p{margin:0;color:var(--muted);text-align:center;line-height:1.6;font-size:15px}
+.rule p b{color:var(--fg);font-weight:400}
+.opts.n2{grid-template-columns:1fr 1fr}.opts.n3{grid-template-columns:1fr 1fr 1fr}
+.opts.n3 .opt{font-size:40px}
 .row.mix .badge{background:var(--surface-2);border:2px dashed var(--blue-soft);box-shadow:none;width:76px;height:76px}
 .row.mix.learned .badge{border-style:solid;border-color:var(--green)}
 .row.mix .badge svg{width:34px;height:34px;fill:none;stroke:var(--fg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -119,6 +130,23 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .chip{width:58px;height:58px;border-radius:14px;background:var(--surface);display:grid;place-items:center;font-size:32px}
 
 /* chart */
+.dt-screen{flex:1;overflow-y:auto;padding-bottom:24px;display:grid;gap:12px;align-content:start}
+.dt-head h2{font-size:17px;font-weight:400;margin:0;line-height:1.4;text-wrap:balance}
+.dt-head p,.dt-note{margin:2px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+.dt-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+.dt{border-collapse:collapse;direction:ltr;width:100%;min-width:330px}
+.dt th,.dt td{border:1px solid var(--line);padding:6px 3px;text-align:center;vertical-align:middle}
+.dt tr:first-child th{background:var(--surface-2);font-size:15px;font-weight:400;border-top:0}
+.dt th.lab{background:var(--surface);font-size:10.5px;font-weight:400;color:var(--muted);text-align:left;line-height:1.7;width:48px;padding-inline:5px}
+.dt td{background:var(--surface)}
+.dt .tk{display:flex;flex-direction:column;align-items:center;line-height:1.05;padding:2px 3px;border-radius:7px;cursor:pointer}
+.dt .tk b{font-family:var(--f-kana);font-weight:600;font-size:22px}
+.dt .tk i{font-style:normal;font-size:11px;color:var(--muted)}
+.dt .tk:active{background:var(--surface-2)}
+.dt .ex,.dt .exl{outline:1.5px solid var(--orange);outline-offset:-1px;border-radius:7px}
+.dt .exl{padding:0 3px;color:var(--fg)}
+.dt .ar{display:block;font-size:10px;color:var(--guide);line-height:1;transform:rotate(90deg)}
+.seg.sw{max-width:260px}
 .chart{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-content:start;padding-bottom:24px;direction:ltr}
 .cell{aspect-ratio:1;border-radius:14px;background:var(--surface);display:grid;place-items:center;align-content:center;gap:2px;max-width:100%}
 .cell .kana{font-size:30px;line-height:1.1}
@@ -216,6 +244,8 @@ const ICON = {
   dl:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
   share:'<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg>',
   mix:'<svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M3 17h4c1.6 0 2.8-1.6 3.9-3.6M13.1 9.6C14.2 8 15.4 7 17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>',
+  table:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9 4.5v15"/></svg>',
+  pdf:'<svg viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M12 11.5v6M9.5 15l2.5 2.5 2.5-2.5"/></svg>',
   play:'<svg viewBox="0 0 24 24"><path d="M6 3.5l15 8.5-15 8.5z"/></svg>'
 };
 
@@ -264,6 +294,42 @@ const isOpen = (s,i) => S.set.unlock || i===0 || isLearned(s,i) || (hasMix(i-1) 
 const isMixOpen = (s,i) => S.set.unlock || isLearned(s,i) || isMixDone(s,i);
 const learnedChars = (s) => ROWS[s].flatMap((row,i)=> isLearned(s,i) ? [...row] : []);
 
+/* ---------- dakuten table (shared by app and PDF) ---------- */
+// cell: chain of "kana roma" steps; "!" marks an irregular pronunciation (boxed)
+const DTABLE = [
+  [["—","V"], ["あ a"], ["い i"], ["う u","ゔ vu"], ["え e"], ["お o"]],
+  [["K","G"], ["か ka","が ga"], ["き ki","ぎ gi"], ["く ku","ぐ gu"], ["け ke","げ ge"], ["こ ko","ご go"]],
+  [["S","Z","!SH","!J"], ["さ sa","ざ za"], ["し shi!","じ ji!"], ["す su","ず zu"], ["せ se","ぜ ze"], ["そ so","ぞ zo"]],
+  [["T","D","!CH","!TS","!J","!Z"], ["た ta","だ da"], ["ち chi!","ぢ ji!"], ["つ tsu!","づ zu!"], ["て te","で de"], ["と to","ど do"]],
+  [["N"], ["な na"], ["に ni"], ["ぬ nu"], ["ね ne"], ["の no"]],
+  [["H","B","P","!F"], ["は ha","ば ba","ぱ pa"], ["ひ hi","び bi","ぴ pi"], ["ふ fu!","ぶ bu","ぷ pu"], ["へ he","べ be","ぺ pe"], ["ほ ho","ぼ bo","ぽ po"]],
+  [["M"], ["ま ma"], ["み mi"], ["む mu"], ["め me"], ["も mo"]],
+  [["Y"], ["や ya"], null, ["ゆ yu"], null, ["よ yo"]],
+  [["R"], ["ら ra"], ["り ri"], ["る ru"], ["れ re"], ["ろ ro"]],
+  [["W"], ["わ wa"], null, null, null, ["を wo"]],
+  [["N סופית"], ["ん n"], null, null, null, null]
+];
+const toKata = str => str.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+const kanaOf = (step, s) => { const k = step.split(" ")[0]; return s === "k" ? toKata(k) : k; };
+function tableHTML(s, opts = {}) {
+  const T = s === "k" ? toKata : (x => x);
+  const step = (st, cls) => {
+    const [k, r] = st.split(" "); const ex = r.endsWith("!");
+    return `<span class="tk${ex ? " ex" : ""}"${opts.tap ? ` data-c="${T(k)}"` : ""}><b>${T(k)}</b><i>${r.replace("!", "")}</i></span>`;
+  };
+  const head = `<tr><th></th>${["a", "i", "u", "e", "o"].map(v => `<th>${v}</th>`).join("")}</tr>`;
+  const rows = DTABLE.map(([lab, ...cells]) =>
+    `<tr><th class="lab">${lab.map(l => l.startsWith("!") ? `<span class="exl">${l.slice(1)}</span>` : l).join(" / ")}</th>${
+      cells.map(c => `<td>${c ? c.map(x => step(x)).join('<span class="ar">→</span>') : ""}</td>`).join("")}</tr>`).join("");
+  const name = s === "k" ? "קטקנה" : "הירגנה";
+  const ex1 = s === "k" ? "ガ" : "が", ex2 = s === "k" ? "パ" : "ぱ";
+  const note = s === "k"
+    ? `${T("ぢ")} ו-${T("づ")} נשמעות כמו ${T("じ")} ו-${T("ず")}, ונדירות מאוד בקטקנה.`
+    : `ぢ ו-づ נשמעות כמו じ ו-ず ונכתבות רק כשמילה שמתחילה ב-ち/つ נדבקת למילה אחרת (てづくり) או בהברה כפולה (つづく).`;
+  return `<div class="dt-head"><h2>טבלת ${name}: בסיס ← דקוטן (${ex1}) ← הנדקוטן (${ex2})</h2><p>החריגים בהגייה ממוסגרים</p></div>
+  <div class="dt-wrap"><table class="dt">${head}${rows}</table></div><p class="dt-note">${note}</p>`;
+}
+
 /* ---------- PWA: install & share ---------- */
 const isStandalone = ()=>matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
@@ -308,6 +374,7 @@ function Home() {
   const el = h(`<section class="screen home">
     <div class="home-top">
       <button class="icon-btn home-gear" aria-label="הגדרות">${ICON.gear}</button>
+      <button class="icon-btn" id="tableBtn" aria-label="טבלת הקאנה" title="טבלה">${ICON.table}</button>
       <span class="sp"></span>
       <button class="icon-btn inst" id="installBtn" aria-label="התקנת האפליקציה" title="התקנה" hidden>${ICON.dl}</button>
       <button class="icon-btn" id="shareBtn" aria-label="שיתוף" title="שיתוף">${ICON.share}</button>
@@ -320,6 +387,7 @@ function Home() {
   el.querySelectorAll(".big-choice").forEach(b=>b.onclick=()=>show(List(b.dataset.s)));
   el.querySelector(".home-gear").onclick = ()=>Settings(()=>show(Home()));
   el.querySelector("#installBtn").onclick = doInstall;
+  el.querySelector("#tableBtn").onclick = ()=>Table("h", Home);
   el.querySelector("#shareBtn").onclick = doShare;
   show(el); paintInstall();
   return el;
@@ -349,6 +417,16 @@ function List(s) {
     </button>`);
     r.onclick = () => open ? startLesson(s,i) : toast(hasMix(i-1) ? "סיימו את החזרה המעורבת כדי לפתוח" : "סיימו את השיעור הקודם כדי לפתוח");
     list.appendChild(r);
+    if (i===SIM_AFTER && s!=="s") {
+      const done = !!S.learned[simId(s)], so = isSimOpen(s);
+      const T = s==="k" ? toKata : (x=>x);
+      const m = h(`<button class="row sim ${done?"learned":so?"ready":"locked"}">
+        <span class="badge kana">${T("はぱ")}</span>
+        <span class="meta"><b>שיעור הדומים</b><span class="chars">אותו בסיס, עם ゛ או ゜ · ${T("か/が · は/ば/ぱ")}</span><em>${done?"נלמד":so?"מוכן ללמידה!":"נעול"}</em></span>
+      </button>`);
+      m.onclick = () => so ? startSim(s) : toast("סיימו את שיעור 11 כדי לפתוח");
+      list.appendChild(m);
+    }
     if (hasMix(i)) {
       const done = isMixDone(s,i), mo = isMixOpen(s,i);
       const n = ROWS[s].slice(0,i+1).flat().length;
@@ -361,7 +439,7 @@ function List(s) {
     }
   });
   el.querySelector('[data-a="home"]').onclick = Home;
-  el.querySelector('[data-a="chart"]').onclick = ()=>show(Chart(s));
+  el.querySelector('[data-a="chart"]').onclick = ()=> s==="s" ? show(Chart(s)) : Table(s, ()=>List(s));
   el.querySelector('[data-a="set"]').onclick = ()=>Settings(()=>show(List(s)));
   el.querySelector('[data-a="smart"]').onclick = ()=>startReview(s, true);
   el.querySelector('[data-a="all"]').onclick = ()=>startReview(s, false);
@@ -370,6 +448,39 @@ function List(s) {
   return el;
 }
 
+function Table(s, back) {
+  const el = h(`<section class="screen">
+    <div class="bar">
+      <button class="icon-btn" data-a="back" aria-label="חזרה">${ICON.back}</button>
+      <h1>טבלת קאנה</h1>
+      <button class="icon-btn" data-a="pdf" aria-label="שליחה כ-PDF" title="שליחה כ-PDF">${ICON.pdf}</button>
+    </div>
+    <div class="dt-screen">
+      <div class="seg sw" role="radiogroup">${["h","k"].map(x=>`<button role="radio" aria-checked="${x===s}" data-s="${x}">${NAME[x]}</button>`).join("")}</div>
+      <div class="dt-body">${tableHTML(s, {tap:true})}</div>
+    </div>
+  </section>`);
+  el.querySelector(".seg").style.gridTemplateColumns = "1fr 1fr";
+  el.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>Table(b.dataset.s, back));
+  el.querySelectorAll(".dt [data-c]").forEach(b=>b.onclick=()=>Peek(b.dataset.c, ()=>Table(s, back)));
+  el.querySelector('[data-a="back"]').onclick = back;
+  el.querySelector('[data-a="pdf"]').onclick = ()=>sharePDF(s);
+  show(el);
+}
+async function sharePDF(s) {
+  const name = s==="k" ? "katakana-table.pdf" : "hiragana-table.pdf";
+  const url = new URL(name, location.href).href;
+  try {
+    const blob = await fetch(url).then(r=>{ if(!r.ok) throw 0; return r.blob(); });
+    const file = new File([blob], name, {type:"application/pdf"});
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      try { await navigator.share({files:[file], title:`טבלת ${NAME[s]}`}); } catch(e){}
+      return;
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); toast("הקובץ ירד");
+  } catch(e) { toast("אין חיבור, לא ניתן לטעון את הקובץ"); }
+}
 function Chart(s) {
   const el = h(`<section class="screen">
     <div class="bar"><button class="icon-btn" aria-label="חזרה">${ICON.back}</button><h1>טבלת ${NAME[s]}</h1></div>
@@ -461,6 +572,36 @@ function startLesson(s,i) {
   SES = {s, lesson:i, chars, q, pos:0, total:q.length, graded:0, right:0};
   next();
 }
+const SIM_AFTER = 10;  // shown after lesson 11 (pa row)
+const simId = s => s+"sim";
+const SIM_CELLS = DTABLE.slice(1,6).flatMap(([,...cells])=>cells).filter(c=>c && c.length>1).map(c=>c.map(x=>x.split(" ")[0]));
+const simCells = s => SIM_CELLS.map(c=>c.map(x=> s==="k" ? toKata(x) : x));
+const isSimOpen = s => S.set.unlock || isLearned(s, SIM_AFTER) || !!S.learned[simId(s)];
+function startSim(s) {
+  const cells = shuffle(simCells(s)).slice(0, 12);
+  const q = [{t:"rule"}];
+  cells.forEach(cell=>{
+    const a = cell[Math.random()*cell.length|0];
+    let b = cell[Math.random()*cell.length|0]; if (cell.length>1) while (b===a) b = cell[Math.random()*cell.length|0];
+    q.push({t:"read", c:a, opts:cell}, {t:"rev", c:b, opts:cell});
+  });
+  const body = shuffle(q.slice(1));
+  SES = {s, lesson:null, sim:true, chars:cells.flat(), q:[q[0], ...body], pos:0, total:q.length, graded:0, right:0, review:true};
+  next();
+}
+function Rule() {
+  const s = SES.s, T = s==="k" ? toKata : (x=>x);
+  const el = sessionShell("הדומים: דקוטן והנדקוטן");
+  el.querySelector(".stage").innerHTML = `<div class="rule">
+    <div class="ln">${T("か")}<span class="ar">→</span>${T("が")}<small>ka → ga</small></div>
+    <p><b>דקוטן ゛</b> (שני קווים קטנים) הופך את העיצור לקולי: <b>k→g · s→z · t→d · h→b</b></p>
+    <div class="ln">${T("は")}<span class="ar">→</span>${T("ば")}<span class="ar">→</span>${T("ぱ")}<small>ha · ba · pa</small></div>
+    <p><b>הנדקוטן ゜</b> (עיגול קטן) מופיע רק בשורת h והופך אותה ל-<b>p</b>. הבסיס נשאר זהה, מסתכלים רק על הפינה הימנית העליונה.</p>
+  </div>`;
+  el.appendChild(h(`<div class="actions"><button class="btn green">יאללה</button></div>`));
+  el.querySelector(".actions .btn").onclick = next;
+  show(el);
+}
 function startMix(s, i) {
   const pool = ROWS[s].slice(0, i+1).flat();
   const wr = S.set.write && s!=="s";
@@ -494,7 +635,7 @@ function startReview(s, smart) {
 function next() {
   if (SES.pos >= SES.q.length) return Done();
   const it = SES.q[SES.pos++];
-  ({intro:Intro, trace:Write, recall:Write, read:Read, rev:Read})[it.t](it);
+  ({intro:Intro, trace:Write, recall:Write, read:Read, rev:Read, rule:Rule})[it.t](it);
 }
 function requeue(it){ SES.q.push({...it, again:true}); SES.total++; }
 function result(it, ok){
@@ -541,10 +682,11 @@ function Read(it) {
   const near = new Set([...(SES.chars||[]), ...learnedChars(s)]);
   let pool = shuffle([...near].filter(c=>c!==it.c && !sameAnswer(c,it.c)));
   const all = shuffle(ROWS[s].flat().filter(c=>c!==it.c && !sameAnswer(c,it.c)));
-  const opts = [it.c];
-  for (const c of pool.concat(all)) { if (opts.length===4) break; if (!opts.some(o=>sameAnswer(o,c))) opts.push(c); }
+  let opts = [it.c];
+  if (it.opts) opts = it.opts.slice();
+  else for (const c of pool.concat(all)) { if (opts.length===4) break; if (!opts.some(o=>sameAnswer(o,c))) opts.push(c); }
   shuffle(opts);
-  const box = h(`<div class="opts"></div>`);
+  const box = h(`<div class="opts ${it.opts ? "n"+opts.length : ""}"></div>`);
   let locked = false;
   opts.forEach(c=>{
     const b = isS
@@ -684,23 +826,25 @@ function Done() {
   const pct = SES.graded ? Math.round(SES.right/SES.graded*100) : 100;
   if (SES.lesson !== null) { S.learned[lessonId(SES.s, SES.lesson)] = true; save(); }
   if (SES.mix != null) { S.learned[mixId(SES.s, SES.mix)] = true; save(); }
-  const from = SES.mix != null ? SES.mix : SES.lesson;
+  if (SES.sim) { S.learned[simId(SES.s)] = true; save(); }
+  const from = SES.mix != null ? SES.mix : SES.sim ? SIM_AFTER : SES.lesson;
   const goMix = SES.lesson !== null && hasMix(SES.lesson);
-  const hasNext = from !== null && (goMix || from < ROWS[SES.s].length-1);
+  const goSim = SES.lesson === SIM_AFTER && SES.s !== "s";
+  const hasNext = from !== null && (goMix || goSim || from < ROWS[SES.s].length-1);
   const el = h(`<section class="screen done">
     <div class="stage">
-      <h2>${SES.mix != null ? "החזרה המעורבת הושלמה" : SES.review ? "החזרה הושלמה" : `שיעור ${SES.lesson+1} הושלם`}</h2>
+      <h2>${SES.sim ? "שיעור הדומים הושלם" : SES.mix != null ? "החזרה המעורבת הושלמה" : SES.review ? "החזרה הושלמה" : `שיעור ${SES.lesson+1} הושלם`}</h2>
       <div class="score">${pct}%</div>
       <div class="small-roma" style="font-size:16px">דיוק בניסיון הראשון</div>
       <div class="chips">${SES.chars.slice(0,15).map(c=>`<span class="chip kana ${SCRIPT_OF[c]==="s"?"w":""}">${c}</span>`).join("")}</div>
     </div>
     <div class="actions">
-      ${hasNext ? `<button class="btn blue" data-a="next">${goMix ? "לחזרה המעורבת" : "לשיעור הבא"}</button>` : ""}
+      ${hasNext ? `<button class="btn blue" data-a="next">${goMix ? "לחזרה המעורבת" : goSim ? "לשיעור הדומים" : "לשיעור הבא"}</button>` : ""}
       <button class="btn ghost" data-a="list">חזרה לרשימה</button>
     </div>
   </section>`);
   el.querySelector('[data-a="list"]').onclick = ()=>List(SES.s);
-  el.querySelector('[data-a="next"]')?.addEventListener("click", ()=> goMix ? startMix(SES.s, SES.lesson) : startLesson(SES.s, from+1));
+  el.querySelector('[data-a="next"]')?.addEventListener("click", ()=> goMix ? startMix(SES.s, SES.lesson) : goSim ? startSim(SES.s) : startLesson(SES.s, from+1));
   show(el);
 }
 
