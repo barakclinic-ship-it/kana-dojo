@@ -38,6 +38,7 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .icon-btn{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;flex:none}
 .icon-btn svg{width:28px;height:28px;fill:none;stroke:var(--fg);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .icon-btn:active{background:var(--surface)}
+.icon-btn.snd[aria-pressed="true"] svg{stroke:var(--muted)}
 .bar h1{font-size:20px;font-weight:400;flex:1;margin:0}
 .progress{flex:1;height:18px;border-radius:99px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
 .progress i{display:block;height:100%;width:0;background:var(--red);border-radius:99px;transition:width .35s ease}
@@ -246,6 +247,8 @@ const ICON = {
   mix:'<svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M3 17h4c1.6 0 2.8-1.6 3.9-3.6M13.1 9.6C14.2 8 15.4 7 17 7h4M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>',
   table:'<svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M3.5 14.5h17M9 4.5v15"/></svg>',
   pdf:'<svg viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5M12 11.5v6M9.5 15l2.5 2.5 2.5-2.5"/></svg>',
+  sndOn:'<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+  sndOff:'<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>',
   play:'<svg viewBox="0 0 24 24"><path d="M6 3.5l15 8.5-15 8.5z"/></svg>'
 };
 
@@ -277,6 +280,15 @@ function animateGlyph(svg) {
 let jaVoice = null;
 function pickVoice(){ const v = speechSynthesis.getVoices(); jaVoice = v.find(x=>/^ja/i.test(x.lang)) || null; }
 if ("speechSynthesis" in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function sndBtn(){ return `<button class="icon-btn snd" data-a="snd" aria-pressed="${!S.set.sound}" aria-label="${S.set.sound?"השתקה":"הפעלת צליל"}" title="${S.set.sound?"השתקה":"הפעלת צליל"}">${S.set.sound?ICON.sndOn:ICON.sndOff}</button>`; }
+function setSound(on){
+  S.set.sound = on; save();
+  if (!on) { try { speechSynthesis.cancel(); } catch(e){} }
+  document.querySelectorAll('[data-a="snd"]').forEach(b=>b.outerHTML = sndBtn());
+  document.querySelectorAll('.switch[data-k="sound"]').forEach(b=>b.setAttribute("aria-checked", on));
+  toast(on ? "הצליל הופעל" : "הצליל הושתק");
+}
+document.addEventListener("click", e=>{ const b = e.target.closest('[data-a="snd"]'); if (b) { e.stopPropagation(); setSound(!S.set.sound); } }, true);
 function speak(c) {
   if (!S.set.sound || !("speechSynthesis" in window)) return;
   try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(speakText(c)); u.lang="ja-JP"; u.rate=.8; if (jaVoice) u.voice=jaVoice; speechSynthesis.speak(u); } catch(e){}
@@ -375,6 +387,7 @@ function Home() {
     <div class="home-top">
       <button class="icon-btn home-gear" aria-label="הגדרות">${ICON.gear}</button>
       <button class="icon-btn" id="tableBtn" aria-label="טבלת הקאנה" title="טבלה">${ICON.table}</button>
+      ${sndBtn()}
       <span class="sp"></span>
       <button class="icon-btn inst" id="installBtn" aria-label="התקנת האפליקציה" title="התקנה" hidden>${ICON.dl}</button>
       <button class="icon-btn" id="shareBtn" aria-label="שיתוף" title="שיתוף">${ICON.share}</button>
@@ -399,6 +412,7 @@ function List(s) {
       <button class="icon-btn" data-a="home" aria-label="חזרה">${ICON.back}</button>
       <h1>${NAME[s]}</h1>
       <button class="icon-btn" data-a="chart" aria-label="טבלת כל התווים">${ICON.grid}</button>
+      ${sndBtn()}
       <button class="icon-btn" data-a="set" aria-label="הגדרות">${ICON.gear}</button>
     </div>
     <div class="list"></div>
@@ -546,7 +560,7 @@ function Settings(onClose) {
     <p class="credit">סדר וכיוון המשיכות מבוססים על <a href="https://kanjivg.tagaini.net" target="_blank" rel="noopener">KanjiVG</a> מאת Ulrich Apel, ברישיון CC BY-SA 3.0. ההתקדמות נשמרת בדפדפן הזה בלבד.</p>
   </div></div>`);
   sc.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ S.set.level=+b.dataset.l; save(); sc.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-checked", x===b)); });
-  sc.querySelectorAll(".switch").forEach(b=>b.onclick=()=>{ const k=b.dataset.k; S.set[k]=!S.set[k]; b.setAttribute("aria-checked",S.set[k]); save(); });
+  sc.querySelectorAll(".switch").forEach(b=>b.onclick=()=>{ const k=b.dataset.k; S.set[k]=!S.set[k]; b.setAttribute("aria-checked",S.set[k]); save(); if (k==="sound") document.querySelectorAll('[data-a="snd"]').forEach(x=>x.outerHTML = sndBtn()); });
   let armed = false;
   const rb = sc.querySelector('[data-a="reset"]');
   rb.onclick = ()=>{
@@ -647,6 +661,7 @@ function sessionShell(prompt) {
     <div class="bar">
       <button class="icon-btn" data-a="x" aria-label="יציאה">${ICON.x}</button>
       <div class="progress" aria-hidden="true"><i></i></div>
+      ${sndBtn()}
       <button class="icon-btn" data-a="set" aria-label="הגדרות">${ICON.gear}</button>
     </div>
     <p class="prompt">${prompt}</p>
