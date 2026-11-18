@@ -75,6 +75,19 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .row .meta em{font-style:normal;font-size:14px;color:var(--muted)}
 .row.ready .meta em{color:var(--green)}
 .row.locked{opacity:.75}
+.sec-h{font-size:14px;color:var(--muted);letter-spacing:.04em;padding:18px 6px 4px;border-top:1px solid var(--line);margin-top:8px}
+.row.shape .badge{background:var(--surface-2);box-shadow:none;border:2px solid var(--blue-soft);font-size:28px;letter-spacing:-.06em}
+.row.k.shape .badge{border-color:var(--orange)}
+.row.shape.learned .badge{border-color:var(--green)}
+.row.shape .meta .chars{font-size:16px;letter-spacing:.04em}
+.cmp{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;direction:ltr;max-width:100%}
+.cmp-c{display:grid;justify-items:center;gap:2px;background:var(--surface);border-radius:16px;padding:10px 8px 8px;width:min(40vw,150px)}
+.cmp-c .cg{width:100%;aspect-ratio:1;max-width:100%}
+.cmp-c .roma{font-size:20px;color:var(--muted)}
+.cmp:has(.cmp-c:nth-child(3)) .cmp-c{width:min(27vw,110px)}
+.cmp:has(.cmp-c:nth-child(4)) .cmp-c{width:min(40vw,120px)}
+.cmp-hint{margin:6px 0 0;color:var(--fg);text-align:center;line-height:1.6;font-size:16px;max-width:34ch;text-wrap:balance}
+.opts.n4{grid-template-columns:1fr 1fr}
 .row.sim .badge{background:var(--surface-2);box-shadow:none;border:2px solid var(--orange);font-size:28px;letter-spacing:-.04em}
 .row.sim.learned .badge{border-color:var(--green)}
 .row.sim .meta .chars{font-size:15px;letter-spacing:0}
@@ -452,6 +465,18 @@ function List(s) {
       list.appendChild(m);
     }
   });
+  if (SHAPES[s]) {
+    list.appendChild(h(`<div class="sec-h">צורות דומות</div>`));
+    SHAPES[s].forEach((L,n)=>{
+      const done = !!S.learned[shapeId(s,n)], so = isShapeOpen(s,n);
+      const r = h(`<button class="row ${s} shape ${done?"learned":so?"ready":"locked"}">
+        <span class="badge kana">${L.groups[0][0].slice(0,2)}</span>
+        <span class="meta"><b>צורות דומות ${n+1} · ${L.name}</b><span class="chars kana">${L.groups.map(g=>g[0]).join(" · ")}</span><em>${done?"נלמד":so?"מוכן ללמידה!":"נפתח כשכל התווים בו נלמדו"}</em></span>
+      </button>`);
+      r.onclick = () => so ? startShape(s,n) : toast("השיעור נפתח אחרי שלומדים את כל התווים שבו");
+      list.appendChild(r);
+    });
+  }
   el.querySelector('[data-a="home"]').onclick = Home;
   el.querySelector('[data-a="chart"]').onclick = ()=> s==="s" ? show(Chart(s)) : Table(s, ()=>List(s));
   el.querySelector('[data-a="set"]').onclick = ()=>Settings(()=>show(List(s)));
@@ -616,6 +641,71 @@ function Rule() {
   el.querySelector(".actions .btn").onclick = next;
   show(el);
 }
+/* ---------- look-alike shapes ---------- */
+const SHAPES = {
+  h: [
+    {name:"לולאות וזנבות", groups:[
+      ["ぬめ","ל-ぬ יש לולאה קטנה בסוף הקו, ל-め אין."],
+      ["ねれわ","ההבדל בסוף: ね נגמר בלולאה, れ בזנב שיוצא החוצה, わ בקשת סגורה."],
+      ["るろ","ל-る יש לולאה בתחתית, ל-ろ אין."],
+      ["あお","ב-あ הקו האנכי חוצה את העיגול באלכסון. ל-お יש נקודה קטנה בפינה הימנית העליונה."],
+      ["うら","ב-う הקו העליון שוכב. ב-ら הוא נטוי, ויש קו אנכי בצד שמאל."]]},
+    {name:"קווים ומראות", groups:[
+      ["はほけ","ほ הוא は עם קו אופקי נוסף למעלה. ל-け אין לולאה בתחתית."],
+      ["さちき","さ ו-ち הם תמונת מראה. き הוא さ עם קו אופקי נוסף."],
+      ["いりこ","い ו-こ הם אותם שני קווים, אנכיים או אופקיים. ב-り הקו הימני ארוך ויורד."],
+      ["しつ","し יורד ומתעקל ימינה. つ הוא קשת אופקית."],
+      ["たな","שניהם מתחילים בצלב. ב-な יש לולאה בתחתית, ב-た שני קווים קצרים."],
+      ["まも","ב-ま הקו האנכי נגמר בלולאה. ב-も הוא מתעקל בתחתית כמו וו."]]}
+  ],
+  k: [
+    {name:"קווים קטנים", groups:[
+      ["シツンソ","הכיוון קובע: ב-シ וב-ン הקו הארוך עולה מלמטה, ב-ツ וב-ソ הוא יורד מלמעלה. ל-シ/ツ שני קווים קצרים, ל-ン/ソ אחד."],
+      ["ナメノ","ナ הוא צלב ישר, メ צלב אלכסוני, ו-ノ קו אחד בלבד."],
+      ["ニエ","エ הוא ニ עם קו אנכי ביניהם."],
+      ["ルレ","ל-ル שני קווים, ל-レ קו אחד."]]},
+    {name:"פינות וכובעים", groups:[
+      ["クケタ","ב-ケ הקו האמצעי יוצא החוצה ימינה. タ הוא ク עם קו קצר בפנים."],
+      ["ウワフラ","ウ הוא ワ עם קו קטן מעל. ל-フ אין קו אנכי בצד. ラ הוא フ עם קו אופקי מעל."],
+      ["コユロ","コ פתוח לשמאל, ロ סגור, ול-ユ בסיס ארוך שבולט."],
+      ["スヌ","ב-ヌ הקו הקטן חוצה את הגוף, ב-ス הוא יוצא מהפינה."]]},
+    {name:"משולשים וצלבים", groups:[
+      ["マムア","ב-マ הזנב קצר, ב-ア הוא ארוך ויורד. ム הוא משולש עם קו קטן בצד."],
+      ["セヒ","ב-セ הקו האופקי חוצה את האנכי, ב-ヒ לא."],
+      ["チテ","ב-チ הקו האנכי עובר דרך הקו האמצעי ומתעקל, ב-テ הוא רק יורד ממנו."],
+      ["ヲヨ","ヨ פתוח לשמאל עם שלושה קווים. ב-ヲ הקו האחרון יורד באלכסון."]]}
+  ]
+};
+const shapeId = (s,n) => s+"shape"+n;
+const shapeChars = (s,n) => SHAPES[s][n].groups.flatMap(g=>[...g[0]]);
+const isShapeOpen = (s,n) => S.set.unlock || !!S.learned[shapeId(s,n)] || shapeChars(s,n).every(c=>learnedChars(s).includes(c));
+function startShape(s, n) {
+  const L = SHAPES[s][n], wr = S.set.write;
+  const q = [];
+  L.groups.forEach(([g,hint])=>{
+    const cell = [...g];
+    q.push({t:"cmp", cell, hint});
+    const body = [];
+    cell.forEach(c=>{ body.push({t:"read", c, opts:cell}, {t:"rev", c, opts:cell}); });
+    if (wr) body.push({t:"recall", c: cell[Math.random()*cell.length|0]});
+    q.push(...shuffle(body));
+  });
+  // final round: everything mixed
+  const all = shapeChars(s,n);
+  const groupOf = c => [...L.groups.find(g=>g[0].includes(c))[0]];
+  shuffle(all.slice()).slice(0,8).forEach(c=>q.push({t: Math.random()<.5?"read":"rev", c, opts:groupOf(c), again:false}));
+  SES = {s, lesson:null, shape:n, chars:all, q, pos:0, total:q.length, graded:0, right:0, review:true};
+  next();
+}
+function Cmp(it) {
+  const el = sessionShell("צורות דומות: שימו לב להבדל");
+  el.querySelector(".stage").innerHTML = `<div class="cmp">${it.cell.map(c=>`<button class="cmp-c" data-c="${c}">${glyphSVG(c,{cls:"cg"})}<span class="roma">${ROMA[c]}</span></button>`).join("")}</div><p class="cmp-hint">${it.hint}</p>`;
+  el.querySelectorAll(".cmp-c").forEach(b=>b.onclick=()=>{ animateGlyph(b.querySelector("svg")); speak(b.dataset.c); });
+  el.appendChild(h(`<div class="actions"><button class="btn green">הבנתי</button></div>`));
+  el.querySelector(".actions .btn").onclick = next;
+  show(el);
+  el.querySelectorAll(".cmp-c svg").forEach((s,i)=>setTimeout(()=>animateGlyph(s), i*500));
+}
 function startMix(s, i) {
   const pool = ROWS[s].slice(0, i+1).flat();
   const wr = S.set.write && s!=="s";
@@ -649,7 +739,7 @@ function startReview(s, smart) {
 function next() {
   if (SES.pos >= SES.q.length) return Done();
   const it = SES.q[SES.pos++];
-  ({intro:Intro, trace:Write, recall:Write, read:Read, rev:Read, rule:Rule})[it.t](it);
+  ({intro:Intro, trace:Write, recall:Write, read:Read, rev:Read, rule:Rule, cmp:Cmp})[it.t](it);
 }
 function requeue(it){ SES.q.push({...it, again:true}); SES.total++; }
 function result(it, ok){
@@ -837,11 +927,32 @@ class Pad {
   }
 }
 
+function ShapeDone(pct) {
+  const s = SES.s, n = SES.shape, nx = n+1 < SHAPES[s].length && isShapeOpen(s, n+1);
+  const el = h(`<section class="screen done">
+    <div class="stage">
+      <h2>צורות דומות ${n+1} הושלם</h2>
+      <div class="score">${pct}%</div>
+      <div class="small-roma" style="font-size:16px">דיוק בניסיון הראשון</div>
+      <div class="chips">${SHAPES[s][n].groups.map(g=>`<span class="chip w kana">${g[0]}</span>`).join("")}</div>
+    </div>
+    <div class="actions">
+      ${nx ? `<button class="btn blue" data-a="next">לצורות דומות ${n+2}</button>` : ""}
+      <button class="btn ghost" data-a="again">עוד סיבוב</button>
+      <button class="btn ghost" data-a="list">חזרה לרשימה</button>
+    </div>
+  </section>`);
+  el.querySelector('[data-a="list"]').onclick = ()=>List(s);
+  el.querySelector('[data-a="again"]').onclick = ()=>startShape(s, n);
+  el.querySelector('[data-a="next"]')?.addEventListener("click", ()=>startShape(s, n+1));
+  show(el);
+}
 function Done() {
   const pct = SES.graded ? Math.round(SES.right/SES.graded*100) : 100;
   if (SES.lesson !== null) { S.learned[lessonId(SES.s, SES.lesson)] = true; save(); }
   if (SES.mix != null) { S.learned[mixId(SES.s, SES.mix)] = true; save(); }
   if (SES.sim) { S.learned[simId(SES.s)] = true; save(); }
+  if (SES.shape != null) { S.learned[shapeId(SES.s, SES.shape)] = true; save(); return ShapeDone(pct); }
   const from = SES.mix != null ? SES.mix : SES.sim ? SIM_AFTER : SES.lesson;
   const goMix = SES.lesson !== null && hasMix(SES.lesson);
   const goSim = SES.lesson === SIM_AFTER && SES.s !== "s";
