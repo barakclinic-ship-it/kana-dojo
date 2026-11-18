@@ -75,6 +75,11 @@ button:focus-visible{outline:3px solid var(--blue-soft);outline-offset:3px}
 .row .meta em{font-style:normal;font-size:14px;color:var(--muted)}
 .row.ready .meta em{color:var(--green)}
 .row.locked{opacity:.75}
+.row.words .badge{background:var(--surface-2);box-shadow:none;border:2px solid var(--green);font-size:26px;letter-spacing:-.04em}
+.row.words.locked .badge{border-color:var(--guide)}
+.row.words .meta .chars{font-size:16px;letter-spacing:.02em}
+.wbig{font-size:clamp(72px,24vw,112px);line-height:1;direction:ltr;letter-spacing:.04em}
+.opt.wopt{font-size:40px;letter-spacing:.04em;direction:ltr}
 .sec-h{font-size:14px;color:var(--muted);letter-spacing:.04em;padding:18px 6px 4px;border-top:1px solid var(--line);margin-top:8px}
 .row.shape .badge{background:var(--surface-2);box-shadow:none;border:2px solid var(--blue-soft);font-size:28px;letter-spacing:-.06em}
 .row.k.shape .badge{border-color:var(--orange)}
@@ -477,6 +482,18 @@ function List(s) {
       list.appendChild(r);
     });
   }
+  if (WORDS[s]) {
+    list.appendChild(h(`<div class="sec-h">צמדים · מילים אמיתיות</div>`));
+    WORDS[s].forEach((L,n)=>{
+      const done = !!S.learned[wordId(s,n)], so = isWordOpen(s,n);
+      const r = h(`<button class="row ${s} words ${done?"learned":so?"ready":"locked"}">
+        <span class="badge kana">${L.words[0][0]}</span>
+        <span class="meta"><b>צמדים ${n+1} · ${L.name}</b><span class="chars kana">${L.words.slice(0,5).map(x=>x[0]).join(" · ")} …</span><em>${done?"נלמד":so?"מוכן ללמידה!":"נפתח כשכל האותיות במילים נלמדו"}</em></span>
+      </button>`);
+      r.onclick = () => so ? startWords(s,n) : toast("השיעור נפתח אחרי שלומדים את כל האותיות שבמילים");
+      list.appendChild(r);
+    });
+  }
   el.querySelector('[data-a="home"]').onclick = Home;
   el.querySelector('[data-a="chart"]').onclick = ()=> s==="s" ? show(Chart(s)) : Table(s, ()=>List(s));
   el.querySelector('[data-a="set"]').onclick = ()=>Settings(()=>show(List(s)));
@@ -706,6 +723,94 @@ function Cmp(it) {
   show(el);
   el.querySelectorAll(".cmp-c svg").forEach((s,i)=>setTimeout(()=>animateGlyph(s), i*500));
 }
+/* ---------- two-kana words ---------- */
+const WORDS = {
+  h: [
+    {name:"טבע ומזג אוויר", words:[["やま","yama","הר"],["うみ","umi","ים"],["かわ","kawa","נהר"],["そら","sora","שמיים"],["あめ","ame","גשם"],["ゆき","yuki","שלג"],["ほし","hoshi","כוכב"],["つき","tsuki","ירח"],["はな","hana","פרח"],["もり","mori","יער"],["くも","kumo","ענן"],["かぜ","kaze","רוח"]]},
+    {name:"אוכל וחיות", words:[["すし","sushi","סושי"],["そば","soba","אטריות כוסמת"],["いか","ika","דיונון"],["たこ","tako","תמנון"],["かに","kani","סרטן"],["えび","ebi","שרימפס"],["のり","nori","אצת נורי"],["もち","mochi","עוגת אורז"],["いぬ","inu","כלב"],["ねこ","neko","חתול"],["とり","tori","ציפור"],["くま","kuma","דוב"]]},
+    {name:"יום יום", words:[["いえ","ie","בית"],["えき","eki","תחנה"],["みせ","mise","חנות"],["かさ","kasa","מטרייה"],["くつ","kutsu","נעליים"],["かぎ","kagi","מפתח"],["みず","mizu","מים"],["あさ","asa","בוקר"],["よる","yoru","לילה"],["いま","ima","עכשיו"],["なに","nani","מה?"],["どこ","doko","איפה?"]]}
+  ],
+  k: [
+    {name:"מילים מאנגלית א׳", words:[["パン","pan","לחם"],["ペン","pen","עט"],["バス","basu","אוטובוס"],["ガス","gasu","גז"],["メモ","memo","פתק"],["ビル","biru","בניין"],["ベル","beru","פעמון"],["ミス","misu","טעות"],["ハム","hamu","נקניק חזיר"],["ジム","jimu","חדר כושר"],["ゼロ","zero","אפס"],["ピザ","piza","פיצה"]]},
+    {name:"מילים מאנגלית ב׳", words:[["ドア","doa","דלת"],["ガム","gamu","מסטיק"],["ボス","bosu","בוס"],["ペア","pea","זוג"],["パパ","papa","אבא"],["ママ","mama","אמא"],["ピン","pin","סיכה"],["ビザ","biza","ויזה"],["スパ","supa","ספא"],["ヨガ","yoga","יוגה"],["ツナ","tsuna","טונה"],["ゴム","gomu","גומי"]]}
+  ]
+};
+const wordId = (s,n) => s+"word"+n;
+const WINFO = {};
+for (const s in WORDS) WORDS[s].forEach(L=>L.words.forEach(([w,r,he])=>WINFO[w]={r,he}));
+const isWordOpen = (s,n) => S.set.unlock || !!S.learned[wordId(s,n)] || WORDS[s][n].words.every(([w])=>[...w].every(c=>learnedChars(s).includes(c)));
+function startWords(s, n) {
+  const ws = WORDS[s][n].words.map(x=>x[0]);
+  const q = [];
+  for (let i=0; i<ws.length; i+=4) {
+    const chunk = ws.slice(i, i+4);
+    chunk.forEach(w=>q.push({t:"wintro", c:w}));
+    const body = [];
+    chunk.forEach(w=>body.push({t:"wread", c:w}, {t:"wmean", c:w}, {t:"wrev", c:w}));
+    q.push(...shuffle(body));
+  }
+  shuffle(ws.slice()).slice(0,6).forEach(w=>q.push({t:["wread","wmean","wrev"][Math.random()*3|0], c:w}));
+  SES = {s, lesson:null, words:n, chars:ws, q, pos:0, total:q.length, graded:0, right:0, review:true};
+  next();
+}
+function WIntro(it) {
+  const W = WINFO[it.c];
+  const el = sessionShell("מילה חדשה");
+  el.querySelector(".stage").innerHTML = `<div class="wbig kana">${it.c}</div><div class="word-read"><span class="he">${W.he}</span><span class="roma">${W.r}</span></div><button class="play" aria-label="השמעה">${ICON.play}</button>`;
+  el.querySelector(".play").onclick = ()=>speak(it.c);
+  el.appendChild(h(`<div class="actions"><button class="btn green">הבנתי</button></div>`));
+  el.querySelector(".actions .btn").onclick = next;
+  show(el); speak(it.c);
+}
+function WQuiz(it) {
+  const W = WINFO[it.c], lesson = WORDS[SES.s][SES.words].words.map(x=>x[0]);
+  const prompts = {wread:"איך קוראים את המילה?", wmean:"מה פירוש המילה?", wrev:"איך כותבים את המילה?"};
+  const el = sessionShell(prompts[it.t]);
+  el.querySelector(".stage").innerHTML = it.t==="wrev"
+    ? `<div class="word-read"><span class="big-he">${W.he}</span><span class="roma" style="font-size:22px">${W.r}</span></div>`
+    : `<div class="wbig kana">${it.c}</div>`;
+  const others = shuffle(lesson.filter(w=>w!==it.c && WINFO[w].he!==W.he));
+  // prefer look-alike distractors for writing: words sharing a character
+  if (it.t==="wrev") others.sort((a,b)=>[...b].filter(c=>it.c.includes(c)).length - [...a].filter(c=>it.c.includes(c)).length);
+  const opts = shuffle([it.c, ...others.slice(0,3)]);
+  const label = w => it.t==="wread" ? WINFO[w].r : it.t==="wmean" ? WINFO[w].he : w;
+  const box = h(`<div class="opts n4"></div>`);
+  let locked = false;
+  opts.forEach(w=>{
+    const b = h(`<button class="opt ${it.t==="wrev"?"kana wopt":it.t==="wmean"?"he":"roma"}">${label(w)}</button>`);
+    b.onclick = ()=>{
+      if (locked) return; locked = true;
+      const ok = w===it.c;
+      b.classList.add(ok?"right":"wrong");
+      if (!ok) [...box.children][opts.indexOf(it.c)].classList.add("right");
+      speak(it.c); result(it, ok);
+      setTimeout(next, ok ? 750 : 1700);
+    };
+    box.appendChild(b);
+  });
+  el.appendChild(box);
+  show(el);
+}
+function WordDone(pct) {
+  const s = SES.s, n = SES.words, nx = n+1 < WORDS[s].length && isWordOpen(s, n+1);
+  const el = h(`<section class="screen done">
+    <div class="stage">
+      <h2>צמדים ${n+1} הושלם</h2>
+      <div class="score">${pct}%</div>
+      <div class="small-roma" style="font-size:16px">דיוק בניסיון הראשון</div>
+      <div class="chips">${WORDS[s][n].words.map(([w])=>`<span class="chip w kana">${w}</span>`).join("")}</div>
+    </div>
+    <div class="actions">
+      ${nx ? `<button class="btn blue" data-a="next">לצמדים ${n+2}</button>` : ""}
+      <button class="btn ghost" data-a="again">עוד סיבוב</button>
+      <button class="btn ghost" data-a="list">חזרה לרשימה</button>
+    </div>
+  </section>`);
+  el.querySelector('[data-a="list"]').onclick = ()=>List(s);
+  el.querySelector('[data-a="again"]').onclick = ()=>startWords(s, n);
+  el.querySelector('[data-a="next"]')?.addEventListener("click", ()=>startWords(s, n+1));
+  show(el);
+}
 function startMix(s, i) {
   const pool = ROWS[s].slice(0, i+1).flat();
   const wr = S.set.write && s!=="s";
@@ -739,7 +844,7 @@ function startReview(s, smart) {
 function next() {
   if (SES.pos >= SES.q.length) return Done();
   const it = SES.q[SES.pos++];
-  ({intro:Intro, trace:Write, recall:Write, read:Read, rev:Read, rule:Rule, cmp:Cmp})[it.t](it);
+  ({intro:Intro, trace:Write, recall:Write, read:Read, rev:Read, rule:Rule, cmp:Cmp, wintro:WIntro, wread:WQuiz, wmean:WQuiz, wrev:WQuiz})[it.t](it);
 }
 function requeue(it){ SES.q.push({...it, again:true}); SES.total++; }
 function result(it, ok){
@@ -952,6 +1057,7 @@ function Done() {
   if (SES.lesson !== null) { S.learned[lessonId(SES.s, SES.lesson)] = true; save(); }
   if (SES.mix != null) { S.learned[mixId(SES.s, SES.mix)] = true; save(); }
   if (SES.sim) { S.learned[simId(SES.s)] = true; save(); }
+  if (SES.words != null) { S.learned[wordId(SES.s, SES.words)] = true; save(); return WordDone(pct); }
   if (SES.shape != null) { S.learned[shapeId(SES.s, SES.shape)] = true; save(); return ShapeDone(pct); }
   const from = SES.mix != null ? SES.mix : SES.sim ? SIM_AFTER : SES.lesson;
   const goMix = SES.lesson !== null && hasMix(SES.lesson);
